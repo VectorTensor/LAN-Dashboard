@@ -1,4 +1,5 @@
 "use client";
+import { useUser } from "@auth0/nextjs-auth0";
 
 import { motion } from "framer-motion";
 import {
@@ -11,6 +12,7 @@ import {
     Settings,
     Bell
 } from "lucide-react";
+import { redirect } from "next/navigation";
 
 const cards = [
     {
@@ -79,6 +81,12 @@ const item = {
 } as const;
 
 export default function Dashboard() {
+  const { user, error, isLoading } = useUser();
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) redirect("/auth/login");
+  if (!user) redirect("/auth/login");
+
     return (
         <div className="min-h-screen p-8 md:p-12 lg:p-16">
             {/* Header */}
@@ -186,6 +194,8 @@ export default function Dashboard() {
                     <a href="#" className="hover:text-white transition-colors">Support</a>
                 </div>
             </motion.footer>
+
+      <a href="/auth/logout">Logout</a>
         </div>
     );
 }
