@@ -30,9 +30,9 @@ jobs:
         run: |
           TAG=${{ github.event.release.tag_name }}
           APP_NAME=backend-infra/lan-dashboard
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$APP_NAME:$TAG
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$APP_NAME$TAG
           docker build \
-            -t $APP_NAME:$TAG\
-            -t $IMAGE_URL:$TAG \
+            -t $APP_NAME$TAG\
+            -t $IMAGE_URL$TAG \
             .
           docker push $IMAGE_URI:$TAG
