@@ -1,4 +1,4 @@
-# Base image
+source /vault/secrets/config# Base image
 FROM node:20-slim AS base
 
 # Stage 1: Dependencies
