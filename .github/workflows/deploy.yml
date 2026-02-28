@@ -32,7 +32,7 @@ jobs:
           APP_NAME=backend-infra/lan-dashboard
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$APP_NAME:$TAG
 
-          docker build -t $APP_NAME .
+          docker build -t $APP_NAME:$TAG .
 
           docker tag $APP_NAME:$TAG public.ecr.aws/n2z2i6h9/backend-infra/lan-dashboard:$TAG
 
