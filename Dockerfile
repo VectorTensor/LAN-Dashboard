@@ -40,5 +40,3 @@ USER nextjs
 
 EXPOSE 3000
 
-# Use the correct start command for standalone Next.js
-CMD ["node", "server.js"]
