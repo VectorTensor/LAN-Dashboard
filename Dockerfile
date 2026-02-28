@@ -1,4 +1,3 @@
-source /vault/secrets/config# Base image
 FROM node:20-slim AS base
 
 # Stage 1: Dependencies
@@ -39,4 +38,3 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 
 EXPOSE 3000
-
