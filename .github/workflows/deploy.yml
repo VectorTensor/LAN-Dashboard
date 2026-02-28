@@ -1,22 +1,18 @@
-name: Build and Push to ECR
+name: Build and Push Release Image
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [created]
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -29,9 +25,10 @@ jobs:
           | docker login --username AWS \
           --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
 
-      - name: Build, tag, and push image
+      - name: Build and Push Image
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app:${{ github.sha }}
+          TAG=${{ github.event.release.tag_name }}
+          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/my-app:$TAG
 
           docker build -t $IMAGE_URI .
           docker push $IMAGE_URI
