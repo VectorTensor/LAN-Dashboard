@@ -29,11 +29,9 @@ jobs:
       - name: Build and Push Image
         run: |
           TAG=${{ github.event.release.tag_name }}
-          APP_NAME=backend-infra/lan-dashboard
+          APP_NAME=lan-dashboard
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$APP_NAME:$TAG
 
           docker build -t $APP_NAME:$TAG .
-
-          docker tag $APP_NAME:$TAG public.ecr.aws/n2z2i6h9/backend-infra/lan-dashboard:$TAG
-
-          docker push public.ecr.aws/n2z2i6h9/backend-infra/lan-dashboard:$TAG
+          docker tag $APP_NAME:$TAG $IMAGE_URI
+          docker push $IMAGE_URI
