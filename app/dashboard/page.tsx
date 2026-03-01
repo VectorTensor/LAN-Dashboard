@@ -24,63 +24,13 @@ import {
 } from "@/components/ui/card";
 import { redirect } from "next/navigation";
 
-const cards = [
-    {
-        title: "Network Status",
-        value: "Online",
-        details: "Speed: 1.2 Gbps",
-        icon: Network,
-        color: "text-blue-400",
-        bg: "from-blue-500/10 to-blue-500/5",
-    },
-    {
-        title: "Connected Devices",
-        value: "14",
-        details: "3 new today",
-        icon: Users,
-        color: "text-purple-400",
-        bg: "from-purple-500/10 to-purple-500/5",
-    },
-    {
-        title: "System Health",
-        value: "98%",
-        details: "Optimal condition",
-        icon: Cpu,
-        color: "text-emerald-400",
-        bg: "from-emerald-500/10 to-emerald-500/5",
-    },
-    {
-        title: "Storage Usage",
-        value: "64%",
-        details: "1.2 TB available",
-        icon: HardDrive,
-        color: "text-orange-400",
-        bg: "from-orange-500/10 to-orange-500/5",
-    },
-    {
-        title: "Security Shield",
-        value: "Active",
-        details: "No threats detected",
-        icon: ShieldCheck,
-        color: "text-cyan-400",
-        bg: "from-cyan-500/10 to-cyan-500/5",
-    },
-    {
-        title: "Recent Alerts",
-        value: "0",
-        details: "System is clear",
-        icon: Bell,
-        color: "text-rose-400",
-        bg: "from-rose-500/10 to-rose-500/5",
-    },
-];
 
 const services = [
     {
         title: "Vault",
         description: "Secure secret management and encryption service for sensitive data.",
         icon: Lock,
-        href: "/vault",
+        href: "http://vault.svc.local/",
         color: "text-amber-400",
     },
     {
