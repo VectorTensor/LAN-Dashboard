@@ -106,20 +106,6 @@ export default function Dashboard() {
             </motion.div>
 
 
-            {/* Footer Info */}
-            <motion.footer
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-                className="mt-8 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-zinc-500 text-sm"
-            >
-                <p>© 2026 LAN Dashboard • Powered by Next.js</p>
-                <div className="flex gap-6">
-                    <a href="#" className="hover:text-white transition-colors">System Logs</a>
-                    <a href="#" className="hover:text-white transition-colors">Network Map</a>
-                    <a href="#" className="hover:text-white transition-colors">Support</a>
-                </div>
-            </motion.footer>
         </div>
     );
 }
