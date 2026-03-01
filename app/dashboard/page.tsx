@@ -78,28 +78,30 @@ export default function Dashboard() {
                             whileHover={{ y: -5 }}
                             transition={{ type: "spring", stiffness: 300 }}
                         >
-                            <Card className="glass border-white/10 hover:border-white/20 transition-all duration-300 overflow-hidden group">
-                                <CardHeader className="flex flex-row items-center gap-4 pb-2">
-                                    <div className={`p-2.5 rounded-lg bg-white/5 ${service.color}`}>
-                                        <service.icon size={24} />
-                                    </div>
-                                    <div className="flex-1">
-                                        <CardTitle className="text-xl text-white group-hover:text-primary transition-colors">
-                                            {service.title}
-                                        </CardTitle>
-                                    </div>
-                                    <ExternalLink size={16} className="text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </CardHeader>
-                                <CardContent>
-                                    <CardDescription className="text-zinc-400 text-sm leading-relaxed">
-                                        {service.description}
-                                    </CardDescription>
-                                    <div className="mt-6 flex items-center gap-2 text-xs font-medium text-zinc-500 group-hover:text-white transition-colors cursor-pointer">
-                                        <span>Open Service</span>
-                                        <div className="h-px flex-1 bg-white/5" />
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            <a href={service.href} target="_blank" rel="noopener noreferrer" className="block h-full">
+                                <Card className="glass border-white/10 hover:border-white/20 transition-all duration-300 overflow-hidden group h-full cursor-pointer">
+                                    <CardHeader className="flex flex-row items-center gap-4 pb-2">
+                                        <div className={`p-2.5 rounded-lg bg-white/5 ${service.color}`}>
+                                            <service.icon size={24} />
+                                        </div>
+                                        <div className="flex-1">
+                                            <CardTitle className="text-xl text-white group-hover:text-primary transition-colors">
+                                                {service.title}
+                                            </CardTitle>
+                                        </div>
+                                        <ExternalLink size={16} className="text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </CardHeader>
+                                    <CardContent>
+                                        <CardDescription className="text-zinc-400 text-sm leading-relaxed">
+                                            {service.description}
+                                        </CardDescription>
+                                        <div className="mt-6 flex items-center gap-2 text-xs font-medium text-zinc-500 group-hover:text-white transition-colors">
+                                            <span>Open Service</span>
+                                            <div className="h-px flex-1 bg-white/5" />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </a>
                         </motion.div>
                     ))}
                 </div>
