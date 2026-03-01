@@ -38,21 +38,6 @@ const items = [
         url: "/dashboard",
         icon: LayoutDashboard,
     },
-    {
-        title: "Vault",
-        url: "http://vault.svc.local/",
-        icon: Lock,
-    },
-    {
-        title: "Flink Pipeline",
-        url: "/flink",
-        icon: Workflow,
-    },
-    {
-        title: "System Logs",
-        url: "/logs",
-        icon: FileText,
-    },
 ];
 
 export function AppSidebar() {
