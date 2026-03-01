@@ -59,43 +59,12 @@ export default function Dashboard() {
     if (!user) redirect("/auth/login");
 
     return (
-        <div className="min-h-screen p-8 md:p-12 lg:p-16">
-            {/* Header */}
-            <motion.header
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="mb-12 flex items-center justify-between"
-            >
-                <div>
-                    <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
-                        Dashboard
-                    </h1>
-                </div>
-                <div className="flex gap-4">
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-3 glass rounded-full text-zinc-400 hover:text-white transition-colors"
-                    >
-                        <Settings size={20} />
-                    </motion.button>
-                    <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        className="p-3 bg-white text-black rounded-full font-medium flex items-center gap-2"
-                    >
-                        <Activity size={20} />
-                        Analyze
-                    </motion.button>
-                </div>
-            </motion.header>
-
+        <div className="flex flex-col gap-8">
             {/* Services Section */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="mt-16"
+                transition={{ delay: 0.2 }}
             >
                 <div className="flex items-center gap-2 mb-8">
                     <h2 className="text-2xl font-bold text-white">Services & Tools</h2>
@@ -141,8 +110,8 @@ export default function Dashboard() {
             <motion.footer
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
-                className="mt-16 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-zinc-500 text-sm"
+                transition={{ delay: 0.5 }}
+                className="mt-8 pt-8 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-zinc-500 text-sm"
             >
                 <p>© 2026 LAN Dashboard • Powered by Next.js</p>
                 <div className="flex gap-6">
@@ -151,8 +120,6 @@ export default function Dashboard() {
                     <a href="#" className="hover:text-white transition-colors">Support</a>
                 </div>
             </motion.footer>
-
-            <a href="/auth/logout">Logout</a>
         </div>
     );
 }
