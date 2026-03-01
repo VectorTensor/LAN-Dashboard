@@ -37,7 +37,7 @@ const services = [
         title: "Flink Data Pipeline",
         description: "Real-time stream processing and data pipeline monitoring.",
         icon: Workflow,
-        href: "/flink",
+        href: "http://flink.svc.local/",
         color: "text-blue-400",
     },
     {
