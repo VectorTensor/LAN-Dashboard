@@ -6,4 +6,4 @@ if [ -f /vault/secrets/config ]; then
   . /vault/secrets/config
 fi
 
-npm start
+node server.js
