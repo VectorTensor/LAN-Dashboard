@@ -30,6 +30,7 @@ if (fs.existsSync(secretsFile)) {
  * @returns string | undefined
  */
 export function getSecret(key: string): string | undefined {
-  console.log("getting secret: ", key);
-  return key in process.env ? process.env[key] : secrets[key];
+    const value = key in process.env ? process.env[key] : secrets[key];
+    console.log("getting secret:", key, "value:", value);
+    return value;
 }
