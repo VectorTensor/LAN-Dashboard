@@ -6,4 +6,4 @@ if [ -f /vault/secrets/config ]; then
   . /vault/secrets/config
 fi
 
-node server.js
+exec node server.js
