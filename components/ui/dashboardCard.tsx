@@ -1,9 +1,7 @@
-import {auth0} from "@/lib/auth0";
-
 interface DashboardCardProps{
-  className: string;
-  title: string;
-  description: string;
+  className?: string;
+  title?: string;
+  description?: string;
 }
 
 export default function DashboardCard(
@@ -14,7 +12,6 @@ export default function DashboardCard(
 
   }: DashboardCardProps
 ) {
-    const session = auth0.getSession()
     return(
   <div className={className}>
     <div className="text-base p-3">

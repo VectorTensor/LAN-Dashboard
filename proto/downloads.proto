@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package downloads;
+
+service DownloadService {
+  rpc GetDownloads (GetDownloadsRequest) returns (GetDownloadsResponse);
+  rpc CreateDownload (CreateDownloadRequest) returns (DownloadItem);
+}
+
+message GetDownloadsRequest {
+  string filter = 1;
+}
+
+message DownloadItem {
+  string id = 1;
+  string filename = 2;
+  string size = 3;
+  string status = 4;
+  int32 progress = 5;
+  string url = 6;
+  string created_at = 7;
+}
+
+message GetDownloadsResponse {
+  repeated DownloadItem items = 1;
+}
+
+message CreateDownloadRequest {
+  string filename = 1;
+  string url = 2;
+}

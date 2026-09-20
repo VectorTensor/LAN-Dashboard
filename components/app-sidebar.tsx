@@ -7,9 +7,10 @@ import {
     Workflow,
     FileText,
     Settings,
-    LogOut,
     User as UserIcon,
     ChevronUp,
+    Download,
+    Database,
 } from "lucide-react";
 
 import {
@@ -24,7 +25,6 @@ import {
     SidebarGroupLabel,
     SidebarGroupContent,
 } from "@/components/ui/sidebar";
-import { useUser } from "@auth0/nextjs-auth0";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -38,11 +38,19 @@ const items = [
         url: "/dashboard",
         icon: LayoutDashboard,
     },
+    {
+        title: "Downloads",
+        url: "/downloads",
+        icon: Download,
+    },
+    {
+        title: "Redis Cache",
+        url: "/redis",
+        icon: Database,
+    },
 ];
 
 export function AppSidebar() {
-    const { user } = useUser();
-
     return (
         <Sidebar collapsible="icon" className="border-r border-white/5 bg-zinc-950">
             <SidebarHeader className="p-4 border-b border-white/5">
@@ -81,13 +89,9 @@ export function AppSidebar() {
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <SidebarMenuButton className="w-full text-zinc-400 hover:text-white">
-                                    {user?.picture ? (
-                                        <img src={user.picture} alt={user.name || ""} className="size-5 rounded-full" />
-                                    ) : (
-                                        <UserIcon className="size-5" />
-                                    )}
+                                    <UserIcon className="size-5" />
                                     <span className="group-data-[collapsible=icon]:hidden">
-                                        {user?.name || "User"}
+                                        User
                                     </span>
                                     <ChevronUp className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
                                 </SidebarMenuButton>
@@ -99,12 +103,6 @@ export function AppSidebar() {
                                 <DropdownMenuItem className="focus:bg-white/5 focus:text-white transition-colors cursor-pointer">
                                     <Settings className="mr-2 h-4 w-4" />
                                     <span>Settings</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild className="focus:bg-white/5 focus:text-white transition-colors cursor-pointer">
-                                    <a href="/auth/logout" className="flex items-center w-full">
-                                        <LogOut className="mr-2 h-4 w-4" />
-                                        <span>Logout</span>
-                                    </a>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

@@ -1,5 +1,4 @@
 "use client";
-import { useUser } from "@auth0/nextjs-auth0";
 
 import { motion } from "framer-motion";
 import {
@@ -13,7 +12,9 @@ import {
     Bell,
     Lock,
     Workflow,
-    ExternalLink
+    ExternalLink,
+    Download,
+    Database,
 } from "lucide-react";
 import {
     Card,
@@ -22,42 +23,38 @@ import {
     CardDescription,
     CardContent,
 } from "@/components/ui/card";
-import { redirect } from "next/navigation";
 
 
 const services = [
     {
-        title: "Vault",
-        description: "Secure secret management and encryption service for sensitive data.",
+        title: "Downloads",
+        description: "Manage system downloads and dispatch requests to backend gRPC service.",
+        icon: Download,
+        href: "/downloads",
+        color: "text-purple-400",
+        isExternal: false,
+    },
+    {
+        title: "Argo CD",
+        description: "Argo cd Dashboard for managing application deployments",
         icon: Lock,
-        href: "http://vault.svc.local/",
+        href: "https://argocd.memehub.ink/",
         color: "text-amber-400",
+        isExternal: true,
     },
     {
         title: "Flink Data Pipeline",
         description: "Real-time stream processing and data pipeline monitoring.",
         icon: Workflow,
-        href: "http://flink.svc.local/",
+        href: "http://flink.memehub.ink/",
         color: "text-blue-400",
+        isExternal: true,
     },
-    {
-        title: "System Logs",
-        description: "Centralized logging and audit trails for all system activities.",
-        icon: ExternalLink,
-        href: "/logs",
-        color: "text-emerald-400",
-    }
 ];
 
 
 
 export default function Dashboard() {
-    const { user, error, isLoading } = useUser();
-
-    if (isLoading) return <div>Loading...</div>;
-    if (error) redirect("/auth/login");
-    if (!user) redirect("/auth/login");
-
     return (
         <div className="flex flex-col gap-8">
             {/* Services Section */}
@@ -78,7 +75,12 @@ export default function Dashboard() {
                             whileHover={{ y: -5 }}
                             transition={{ type: "spring", stiffness: 300 }}
                         >
-                            <a href={service.href} target="_blank" rel="noopener noreferrer" className="block h-full">
+                            <a
+                                href={service.href}
+                                target={service.isExternal ? "_blank" : "_self"}
+                                rel={service.isExternal ? "noopener noreferrer" : undefined}
+                                className="block h-full"
+                            >
                                 <Card className="glass border-white/10 hover:border-white/20 transition-all duration-300 overflow-hidden group h-full cursor-pointer">
                                     <CardHeader className="flex flex-row items-center gap-4 pb-2">
                                         <div className={`p-2.5 rounded-lg bg-white/5 ${service.color}`}>
@@ -106,8 +108,6 @@ export default function Dashboard() {
                     ))}
                 </div>
             </motion.div>
-
-
         </div>
     );
 }
