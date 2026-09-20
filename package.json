@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "grpc:server": "node scripts/grpc-server.js"
+    "lint": "eslint"
   },
   "dependencies": {
     "@grpc/grpc-js": "^1.14.5",
