@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { filename, url } = body;
+    const { filename, url, downloadPath } = body;
 
     if (!filename || !url) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Perform server-side gRPC client call
-    const result = await createDownloadViaGrpc(filename, url);
+    const result = await createDownloadViaGrpc(filename, url, downloadPath || '');
 
     return NextResponse.json(result);
   } catch (error: any) {

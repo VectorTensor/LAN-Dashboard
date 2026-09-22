@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package download;
+
+service DownloadService{
+  rpc DownloadAnime (DownloadAnimeRequest) returns (DownloadAnimeResponse);
+  rpc GetStatus (GetStatusRequest) returns (GetStatusResponse) {}
+  rpc PauseDownload (PauseDownloadRequest) returns ( PauseDownloadResponse);
+  rpc ResumeDownload (ResumeDownloadRequest) returns ( ResumeDownloadResponse);
+  rpc SetDownloadLimit(SetDownloadRequest) returns (SetDownloadResponse);
+  rpc UnsetDownloadLimit(UnsetDownloadRequest) returns (SetDownloadResponse);
+}
+
+message DownloadAnimeRequest{
+  string url = 1;
+  string download_path = 2;
+
+}
+message DownloadAnimeResponse{
+  string message = 1;
+  bool status = 2;
+  string id = 3;
+}
+
+message  GetStatusRequest{
+  string id = 1;
+
+}
+
+message GetStatusResponse {
+  float progress =1 ;
+  float total_downloaded = 2;
+  string state = 3;
+  float total_size = 4;
+  bool isPaused = 5;
+  float download_speed = 6;
+
+}
+
+message PauseDownloadRequest{
+
+  string id = 1;
+}
+
+message PauseDownloadResponse{
+  string message = 1;
+  bool status = 2;
+}
+message ResumeDownloadRequest{
+
+  string id = 1;
+}
+
+message ResumeDownloadResponse{
+  string message = 1;
+  bool status = 2;
+}
+message SetDownloadRequest{
+
+  string id = 1;
+  int32 limit = 2;
+}
+
+message SetDownloadResponse{
+  string message = 1;
+  bool status = 2;
+}
+message UnsetDownloadRequest{
+  string id = 1;
+}

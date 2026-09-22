@@ -1,15 +1,16 @@
-import Redis from 'ioredis';
+import { createClient } from "redis";
+import { getSecret } from "@/lib/loadSecrets";
 
 export interface CacheEntry {
   key: string;
   value: string;
-  ttl?: number; // seconds
+  ttl?: number;
 }
 
 export interface RedisStatusResponse {
   connected: boolean;
   target: string;
-  source: 'redis_server' | 'fallback';
+  source: "redis_server" | "fallback";
   keysCount: number;
   keys: CacheEntry[];
   error?: string;
@@ -21,65 +22,63 @@ export interface RedisStatusResponse {
   };
 }
 
-const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+type RedisClientType = ReturnType<typeof createClient>;
 
-// Prevent multiple instances of Redis client in Next.js development hot reloading
-const globalForRedis = globalThis as unknown as {
-  redisClient: Redis | undefined;
-};
+let redisInstance: RedisClientType | null = null;
 
-// Local fallback in-memory cache when Redis server is offline
-const fallbackStore = new Map<string, { value: string; expiresAt?: number }>([
-  ['sys:status', { value: 'OPERATIONAL' }],
-  ['cache:session:user_1', { value: '{"id":"usr_101","role":"admin"}', expiresAt: Date.now() + 3600000 }],
-  ['rate_limit:ip:127.0.0.1', { value: '42', expiresAt: Date.now() + 60000 }],
-  ['config:feature_flags', { value: '{"betaDownloads":true,"grpcCompression":true}' }],
-]);
-
-function createRedisInstance(): Redis {
-  const client = new Redis(REDIS_URL, {
-    maxRetriesPerRequest: 1,
-    connectTimeout: 1500,
-    lazyConnect: true,
-    enableOfflineQueue: false,
-    retryStrategy: (times) => {
-      // Don't keep retrying continuously if Redis is down
-      if (times > 2) return null;
-      return Math.min(times * 200, 1000);
-    },
-  });
-
-  client.on('error', (err) => {
-    // Suppress unhandled error log floods when offline
-    console.warn(`[Redis Client Warning] (${REDIS_URL}): ${err.message}`);
-  });
-
-  return client;
-}
-
-export function getRedisClient(): Redis {
-  if (!globalForRedis.redisClient) {
-    globalForRedis.redisClient = createRedisInstance();
+export async function getRedisClient(): Promise<RedisClientType> {
+  if (!redisInstance) {
+    const redisUrl = getSecret("CFG_REDIS_URL") || process.env.REDIS_URL || "redis://localhost:6379";
+    redisInstance = createClient({
+      url: redisUrl,
+    });
+    redisInstance.on("error", (err) => {
+      console.warn("[Redis Client Warning]:", err?.message || err);
+    });
   }
-  return globalForRedis.redisClient;
+  if (!redisInstance.isOpen) {
+    await redisInstance.connect();
+  }
+  return redisInstance;
 }
 
+export async function getKey(key: string): Promise<string | null> {
+  const client = await getRedisClient();
+  return client.get(key);
+}
+
+export async function setKey(key: string, value: string): Promise<void> {
+  const client = await getRedisClient();
+  await client.set(key, value);
+}
+
+export async function getList(key: string): Promise<string[]> {
+  const client = await getRedisClient();
+  return client.lRange(key, 0, -1);
+}
+
+export async function addToList(key: string, ...items: string[]): Promise<void> {
+  if (items.length === 0) return;
+  const client = await getRedisClient();
+  await client.rPush(key, items);
+}
+
+export async function removeFromList(key: string, item: string): Promise<void> {
+  const client = await getRedisClient();
+  await client.lRem(key, 1, item);
+}
+
+// Support for Redis dashboard API
 export async function fetchRedisData(): Promise<RedisStatusResponse> {
-  const client = getRedisClient();
-  const target = REDIS_URL;
-
+  const target = getSecret("CFG_REDIS_URL") || process.env.REDIS_URL || "redis://localhost:6379";
   try {
-    if (client.status === 'wait') {
-      await client.connect();
-    }
-
+    const client = await getRedisClient();
     const pingResult = await client.ping();
-    if (pingResult !== 'PONG') {
-      throw new Error('Unexpected PONG response');
+    if (pingResult !== "PONG") {
+      throw new Error("Unexpected PONG response");
     }
 
-    // Server is live
-    const allKeys = await client.keys('*');
+    const allKeys = await client.keys("*");
     const entries: CacheEntry[] = [];
 
     for (const key of allKeys.slice(0, 50)) {
@@ -87,99 +86,56 @@ export async function fetchRedisData(): Promise<RedisStatusResponse> {
       const ttl = await client.ttl(key);
       entries.push({
         key,
-        value: val || '',
+        value: val || "",
         ttl: ttl > 0 ? ttl : undefined,
       });
-    }
-
-    // Optional server info
-    let infoParsed: any = {};
-    try {
-      const rawInfo = await client.info();
-      const versionMatch = rawInfo.match(/redis_version:(.+)/);
-      const memoryMatch = rawInfo.match(/used_memory_human:(.+)/);
-      const clientsMatch = rawInfo.match(/connected_clients:(.+)/);
-      const uptimeMatch = rawInfo.match(/uptime_in_days:(.+)/);
-
-      infoParsed = {
-        redisVersion: versionMatch ? versionMatch[1].trim() : '7.x',
-        usedMemoryHuman: memoryMatch ? memoryMatch[1].trim() : 'N/A',
-        connectedClients: clientsMatch ? parseInt(clientsMatch[1].trim()) : 1,
-        uptimeInDays: uptimeMatch ? parseInt(uptimeMatch[1].trim()) : 0,
-      };
-    } catch {
-      infoParsed = { redisVersion: 'Connected' };
     }
 
     return {
       connected: true,
       target,
-      source: 'redis_server',
+      source: "redis_server",
       keysCount: allKeys.length,
       keys: entries,
-      info: infoParsed,
     };
   } catch (err: any) {
-    // Graceful fallback when Redis server is down
-    const fallbackEntries: CacheEntry[] = [];
-    const now = Date.now();
-
-    fallbackStore.forEach((item, key) => {
-      if (!item.expiresAt || item.expiresAt > now) {
-        fallbackEntries.push({
-          key,
-          value: item.value,
-          ttl: item.expiresAt ? Math.round((item.expiresAt - now) / 1000) : undefined,
-        });
-      }
-    });
-
     return {
       connected: false,
       target,
-      source: 'fallback',
-      keysCount: fallbackEntries.length,
-      keys: fallbackEntries,
-      error: err?.message || 'Redis server unreachable at ' + target,
+      source: "fallback",
+      keysCount: 0,
+      keys: [],
+      error: err?.message || "Redis server unreachable at " + target,
     };
   }
 }
 
-export async function setRedisKey(key: string, value: string, ttlSeconds?: number): Promise<{ success: boolean; source: string }> {
-  const client = getRedisClient();
-
+export async function setRedisKey(
+  key: string,
+  value: string,
+  ttlSeconds?: number
+): Promise<{ success: boolean; source: string }> {
   try {
-    if (client.status === 'wait') {
-      await client.connect();
-    }
+    const client = await getRedisClient();
     if (ttlSeconds && ttlSeconds > 0) {
-      await client.set(key, value, 'EX', ttlSeconds);
+      await client.set(key, value, { EX: ttlSeconds });
     } else {
       await client.set(key, value);
     }
-    return { success: true, source: 'redis_server' };
+    return { success: true, source: "redis_server" };
   } catch {
-    // Update local fallback store
-    fallbackStore.set(key, {
-      value,
-      expiresAt: ttlSeconds && ttlSeconds > 0 ? Date.now() + ttlSeconds * 1000 : undefined,
-    });
-    return { success: true, source: 'fallback' };
+    return { success: false, source: "fallback" };
   }
 }
 
-export async function deleteRedisKey(key: string): Promise<{ success: boolean; source: string }> {
-  const client = getRedisClient();
-
+export async function deleteRedisKey(
+  key: string
+): Promise<{ success: boolean; source: string }> {
   try {
-    if (client.status === 'wait') {
-      await client.connect();
-    }
+    const client = await getRedisClient();
     await client.del(key);
-    fallbackStore.delete(key);
-    return { success: true, source: 'redis_server' };
+    return { success: true, source: "redis_server" };
   } catch {
-    fallbackStore.delete(key);
-    return { success: true, source: 'fallback' };
+    return { success: false, source: "fallback" };
   }
 }

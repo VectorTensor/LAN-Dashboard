@@ -1,6 +1,11 @@
-import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
-import path from 'path';
+import * as grpc from "@grpc/grpc-js";
+import {
+  DownloadServiceClient,
+  DownloadAnimeResponse,
+  GetStatusResponse,
+} from "@/generated/Download";
+import { getSecret } from "@/lib/loadSecrets";
+import { setKey, getKey, addToList, getList } from "@/lib/redisClient";
 
 export interface DownloadItem {
   id: string;
@@ -14,168 +19,185 @@ export interface DownloadItem {
 
 export interface GetDownloadsResponse {
   items: DownloadItem[];
-  source: 'grpc_server' | 'fallback';
+  source: "grpc_server" | "fallback";
   grpcTarget: string;
   error?: string;
 }
 
 export interface CreateDownloadResponse {
-  item: DownloadItem;
-  source: 'grpc_server' | 'fallback';
+  item?: DownloadItem;
+  id?: string;
+  source: "grpc_server" | "fallback";
   grpcTarget: string;
   error?: string;
 }
 
-const PROTO_PATH = path.join(process.cwd(), 'proto/downloads.proto');
+export function getGrpcUrls(): string[] {
+  const envVal = getSecret("CFG_PEGASUS_PODS") || process.env.GRPC_URLS || "localhost:50051";
+  return envVal
+    .split(",")
+    .map((url) => url.trim())
+    .filter(Boolean);
+}
 
-const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
-  keepCase: true,
-  longs: String,
-  enums: String,
-  defaults: true,
-  oneofs: true,
-});
+let index = 0;
 
-const protoDescriptor = grpc.loadPackageDefinition(packageDefinition) as any;
-const downloadsProto = protoDescriptor.downloads;
+export function getUserClient() {
+  const urls = getGrpcUrls();
+  if (urls.length === 0) {
+    throw new Error("GRPC_URLS is not configured");
+  }
 
-const GRPC_TARGET = process.env.GRPC_SERVER_URL || 'localhost:50051';
+  const urlGrpc = urls[index % urls.length];
+  index++;
 
-// Initial fallback mock data
-let mockDownloads: DownloadItem[] = [
-  {
-    id: 'dl-1',
-    filename: 'ubuntu-24.04-desktop-amd64.iso',
-    size: '5.8 GB',
-    status: 'COMPLETED',
-    progress: 100,
-    url: 'https://releases.ubuntu.com/24.04/ubuntu-24.04-desktop-amd64.iso',
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-  },
-  {
-    id: 'dl-2',
-    filename: 'alpine-standard-3.20.0-x86_64.iso',
-    size: '210 MB',
-    status: 'IN_PROGRESS',
-    progress: 68,
-    url: 'https://dl-cdn.alpinelinux.org/alpine/v3.20/releases/x86_64/alpine-standard-3.20.0-x86_64.iso',
-    created_at: new Date(Date.now() - 1800000).toISOString(),
-  },
-  {
-    id: 'dl-3',
-    filename: 'postgresql-16.3-data-dump.tar.gz',
-    size: '1.2 GB',
-    status: 'PENDING',
-    progress: 0,
-    url: 'http://backup.svc.local/dumps/postgresql-16.3-data-dump.tar.gz',
-    created_at: new Date(Date.now() - 600000).toISOString(),
-  },
-];
-
-export function getGrpcClient() {
-  return new downloadsProto.DownloadService(
-    GRPC_TARGET,
+  const client = new DownloadServiceClient(
+    urlGrpc,
     grpc.credentials.createInsecure()
   );
+
+  return {
+    client,
+    urlGrpc,
+  };
 }
 
-export async function fetchDownloadsFromGrpc(filter: string = ''): Promise<GetDownloadsResponse> {
-  return new Promise((resolve) => {
-    try {
-      const client = getGrpcClient();
-      const deadline = new Date(Date.now() + 1500); // 1.5s deadline
+function formatBytes(bytes: number): string {
+  if (!bytes || bytes <= 0) return "0 MB";
+  const k = 1024;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
 
-      client.GetDownloads({ filter }, { deadline }, (err: grpc.ServiceError | null, response: { items: DownloadItem[] }) => {
-        client.close();
+export async function createDownloadViaGrpc(
+  filename: string,
+  url: string,
+  downloadPath: string = ""
+): Promise<CreateDownloadResponse> {
+  let client: DownloadServiceClient;
+  let urlGrpc: string;
+
+  try {
+    const uc = getUserClient();
+    client = uc.client;
+    urlGrpc = uc.urlGrpc;
+  } catch (err: any) {
+    return {
+      source: "fallback",
+      grpcTarget: "unknown",
+      error: err?.message || "Failed to initialize gRPC client",
+    };
+  }
+
+  return new Promise((resolve) => {
+    const deadline = new Date(Date.now() + 5000); // 5s deadline
+    let currentDownloadId = "";
+    client.downloadAnime(
+      { url, downloadPath },
+      { deadline },
+      async (err: grpc.ServiceError | null, response?: DownloadAnimeResponse) => {
         if (err || !response) {
-          console.warn(`[gRPC Client] Call failed (${GRPC_TARGET}): ${err?.message}. Using server fallback.`);
+          console.error(`[gRPC Client] downloadAnime error (${urlGrpc}):`, err);
           resolve({
-            items: mockDownloads,
-            source: 'fallback',
-            grpcTarget: GRPC_TARGET,
-            error: err?.message || 'Server unreachable',
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+            error: err?.message || "Failed to dispatch download to gRPC service",
           });
-        } else {
-          resolve({
-            items: response.items || [],
-            source: 'grpc_server',
-            grpcTarget: GRPC_TARGET,
-          });
+          return;
         }
-      });
-    } catch (e: any) {
-      console.error('[gRPC Client] Initialization error:', e);
-      resolve({
-        items: mockDownloads,
-        source: 'fallback',
-        grpcTarget: GRPC_TARGET,
-        error: e?.message || 'Initialization failed',
-      });
-    }
-  });
-}
 
-export async function createDownloadViaGrpc(filename: string, url: string): Promise<CreateDownloadResponse> {
-  return new Promise((resolve) => {
-    try {
-      const client = getGrpcClient();
-      const deadline = new Date(Date.now() + 1500);
+        try {
+          const downloadId = response.id;
+          // Store mapping in Redis (as requested)
+          await setKey(filename, downloadId);
 
-      client.CreateDownload({ filename, url }, { deadline }, (err: grpc.ServiceError | null, response: DownloadItem) => {
-        client.close();
-        if (err || !response) {
-          console.warn(`[gRPC Client] CreateDownload failed (${GRPC_TARGET}): ${err?.message}. Creating local fallback entry.`);
           const newItem: DownloadItem = {
-            id: `dl-${Date.now()}`,
+            id: downloadId,
             filename,
-            size: '150 MB',
-            status: 'IN_PROGRESS',
-            progress: 10,
-            url,
+            size: "Starting...",
+            status: "IN_PROGRESS",
+            progress: 0,
+            url:urlGrpc,
             created_at: new Date().toISOString(),
           };
-          mockDownloads.unshift(newItem);
+
+          client.setDownloadLimit(
+              {
+                id:downloadId,
+                limit:1024,
+
+              },
+              { deadline },
+              async (err: grpc.ServiceError | null, response?: DownloadAnimeResponse) => {
+                if (err || !response) {
+                  console.error(`[gRPC Client] downloadAnime error (${urlGrpc}):`, err);
+                  resolve({
+                    source: "grpc_server",
+                    grpcTarget: urlGrpc,
+                    error: err?.message || "Failed to dispatch download to gRPC service",
+                  });
+                  return;
+                }
+              }
+
+
+
+          )
+
+          // Store full item and add to list in Redis
+
+          await setKey(`download:${filename}`, JSON.stringify(newItem));
+          await addToList("downloads:list", filename);
+          currentDownloadId = downloadId;
           resolve({
             item: newItem,
-            source: 'fallback',
-            grpcTarget: GRPC_TARGET,
-            error: err?.message || 'Server unreachable',
+            id: downloadId,
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
           });
-        } else {
+        } catch (redisErr: any) {
+          console.warn("[Redis] Failed to cache download item:", redisErr);
           resolve({
-            item: response,
-            source: 'grpc_server',
-            grpcTarget: GRPC_TARGET,
+            id: response.id,
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+            error: "gRPC succeeded but Redis caching failed: " + redisErr?.message,
           });
         }
-      });
-    } catch (e: any) {
-      console.error('[gRPC Client] CreateDownload error:', e);
-      const newItem: DownloadItem = {
-        id: `dl-${Date.now()}`,
-        filename,
-        size: '150 MB',
-        status: 'IN_PROGRESS',
-        progress: 10,
-        url,
-        created_at: new Date().toISOString(),
-      };
-      mockDownloads.unshift(newItem);
-      resolve({
-        item: newItem,
-        source: 'fallback',
-        grpcTarget: GRPC_TARGET,
-        error: e?.message || 'Initialization failed',
-      });
-    }
+      }
+    );
+
   });
 }
 
-export function getEnvStringList(key: string): string[] {
-  return (
-      process.env[key]
-          ?.split(",")
-          .map((value) => value.trim())
-          .filter(Boolean) ?? []
-  );
+export async function fetchDownloadsFromGrpc(filter: string = ""): Promise<GetDownloadsResponse> {
+  let urlGrpc = "localhost:50051";
+  let client: DownloadServiceClient | null = null;
+  let grpcError: string | undefined;
+
+  try {
+    const uc = getUserClient();
+    client = uc.client;
+    urlGrpc = uc.urlGrpc;
+  } catch (e: any) {
+    grpcError = e?.message || "Failed to initialize gRPC client";
+  }
+  const names = await getList("downloads:list");
+  const items: DownloadItem[] = names.map((filename) => ({
+    id: crypto.randomUUID(),
+    filename,
+    size: "",
+    status: "",
+    progress: 0,
+    url: "",
+    created_at: new Date().toISOString(),
+  }));
+
+  return {
+    items,
+    source: "grpc_server",
+    grpcTarget: urlGrpc,
+    error: grpcError,
+  };
 }

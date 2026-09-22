@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  GREETING: Hello, world!
+
+tasks:
+  default:
+    desc: Print a greeting message
+    cmds:
+      - echo "{{.GREETING}}"
+
+  codegen:
+    desc: generate grpc code
+    silent: true
+    cmds:
+      - |
+        protoc \
+          --plugin=./node_modules/.bin/protoc-gen-ts_proto \
+          --ts_proto_out=generated \
+          --ts_proto_opt=outputServices=grpc-js \
+          --ts_proto_opt=esModuleInterop=true \
+          --proto_path=proto \
+          proto/Download.proto
