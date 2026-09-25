@@ -3,6 +3,7 @@ import {
   DownloadServiceClient,
   DownloadAnimeResponse,
   GetStatusResponse,
+  SetDownloadResponse,
 } from "@/generated/Download";
 import { getSecret } from "@/lib/loadSecrets";
 import { setKey, getKey, addToList, getList } from "@/lib/redisClient";
@@ -95,6 +96,7 @@ export async function createDownloadViaGrpc(
     let currentDownloadId = "";
     client.downloadAnime(
       { url, downloadPath },
+      new grpc.Metadata(),
       { deadline },
       async (err: grpc.ServiceError | null, response?: DownloadAnimeResponse) => {
         if (err || !response) {
@@ -128,8 +130,9 @@ export async function createDownloadViaGrpc(
                 limit:1024,
 
               },
+              new grpc.Metadata(),
               { deadline },
-              async (err: grpc.ServiceError | null, response?: DownloadAnimeResponse) => {
+              async (err: grpc.ServiceError | null, response?: SetDownloadResponse) => {
                 if (err || !response) {
                   console.error(`[gRPC Client] downloadAnime error (${urlGrpc}):`, err);
                   resolve({
