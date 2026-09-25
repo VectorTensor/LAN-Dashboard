@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   Clock,
   Loader2,
-  ExternalLink,
+  Pause,
+  Play,
   Zap,
   AlertCircle,
 } from "lucide-react";
@@ -30,9 +31,11 @@ interface DownloadItem {
 interface GrpcApiResponse {
   items?: DownloadItem[];
   item?: DownloadItem;
+  success?: boolean;
   source?: "grpc_server" | "fallback";
   grpcTarget?: string;
   error?: string;
+  message?: string;
 }
 
 export function DownloadsPageClient() {
@@ -52,6 +55,7 @@ export function DownloadsPageClient() {
   const [url, setUrl] = useState("");
   const [downloadPath, setDownloadPath] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
+  const [actionFilename, setActionFilename] = useState<string | null>(null);
 
   const fetchDownloads = async () => {
     setLoading(true);
@@ -105,6 +109,31 @@ export function DownloadsPageClient() {
     }
   };
 
+  const handleControlDownload = async (
+    itemFilename: string,
+    action: "pause" | "resume"
+  ) => {
+    setActionFilename(itemFilename);
+    try {
+      const res = await fetch(`/api/downloads/${action}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ filename: itemFilename }),
+      });
+      const data: GrpcApiResponse = await res.json();
+
+      if (!res.ok || data.error) {
+        throw new Error(data.error || `Failed to ${action} download`);
+      }
+
+      await fetchDownloads();
+    } catch (err) {
+      console.error(`Failed to ${action} download:`, err);
+    } finally {
+      setActionFilename(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status.toUpperCase()) {
       case "COMPLETED":
@@ -119,6 +148,13 @@ export function DownloadsPageClient() {
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
             <Loader2 size={12} className="animate-spin" />
             Downloading
+          </span>
+        );
+      case "PAUSED":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
+            <Pause size={12} />
+            Paused
           </span>
         );
       default:
@@ -328,15 +364,53 @@ export function DownloadsPageClient() {
                         </div>
                       </div>
 
-                      <a
-                        href={item.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 rounded-lg bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
-                        title="Open link"
-                      >
-                        <ExternalLink size={16} />
-                      </a>
+                      {(() => {
+                        const status = item.status.toUpperCase();
+                        const busy = actionFilename === item.filename;
+                        if (status === "COMPLETED") return null;
+
+                        if (status === "PAUSED") {
+                          return (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={busy}
+                              onClick={() =>
+                                handleControlDownload(item.filename, "resume")
+                              }
+                              className="border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 hover:text-emerald-300"
+                              title="Resume download"
+                            >
+                              {busy ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Play size={14} />
+                              )}
+                              <span className="ml-1.5">Resume</span>
+                            </Button>
+                          );
+                        }
+
+                        return (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={busy}
+                            onClick={() =>
+                              handleControlDownload(item.filename, "pause")
+                            }
+                            className="border-orange-500/30 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 hover:text-orange-300"
+                            title="Pause download"
+                          >
+                            {busy ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Pause size={14} />
+                            )}
+                            <span className="ml-1.5">Pause</span>
+                          </Button>
+                        );
+                      })()}
                     </div>
                   </div>
                 </CardContent>

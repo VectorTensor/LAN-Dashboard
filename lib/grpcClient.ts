@@ -3,6 +3,8 @@ import {
   DownloadServiceClient,
   DownloadAnimeResponse,
   GetStatusResponse,
+  PauseDownloadResponse,
+  ResumeDownloadResponse,
   SetDownloadResponse,
 } from "@/generated/Download";
 import { getSecret } from "@/lib/loadSecrets";
@@ -28,6 +30,15 @@ export interface GetDownloadsResponse {
 export interface CreateDownloadResponse {
   item?: DownloadItem;
   id?: string;
+  source: "grpc_server" | "fallback";
+  grpcTarget: string;
+  error?: string;
+}
+
+export interface ControlDownloadResponse {
+  success: boolean;
+  message?: string;
+  item?: DownloadItem;
   source: "grpc_server" | "fallback";
   grpcTarget: string;
   error?: string;
@@ -90,6 +101,35 @@ function formatBytes(bytes: number): string {
   const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+async function getCachedDownload(
+  filename: string
+): Promise<{ item: DownloadItem } | { error: string }> {
+  const raw = await getKey(`download:${filename}`);
+  if (!raw) {
+    return { error: `Missing Redis key download:${filename}` };
+  }
+
+  try {
+    const item = JSON.parse(raw) as DownloadItem;
+    if (!item.id || !item.url) {
+      return { error: `download:${filename} missing id or pod url` };
+    }
+    return { item: { ...item, filename: item.filename || filename } };
+  } catch {
+    return { error: `Invalid Redis JSON for download:${filename}` };
+  }
+}
+
+async function updateCachedDownloadStatus(
+  filename: string,
+  item: DownloadItem,
+  status: string
+): Promise<DownloadItem> {
+  const updated = { ...item, status };
+  await setKey(`download:${filename}`, JSON.stringify(updated));
+  return updated;
 }
 
 export async function createDownloadViaGrpc(
@@ -268,4 +308,146 @@ export async function fetchDownloadsFromGrpc(filter: string = ""): Promise<GetDo
     grpcTarget: items[0]?.url || getGrpcUrls()[0] || "unknown",
     error: errors.length > 0 ? errors.join("; ") : undefined,
   };
+}
+
+export async function pauseDownloadViaGrpc(
+  filename: string
+): Promise<ControlDownloadResponse> {
+  const cached = await getCachedDownload(filename);
+  if ("error" in cached) {
+    return {
+      success: false,
+      source: "fallback",
+      grpcTarget: "unknown",
+      error: cached.error,
+    };
+  }
+
+  const { item } = cached;
+  const { client, urlGrpc } = getClientForUrl(item.url);
+
+  return new Promise((resolve) => {
+    const deadline = new Date(Date.now() + 5000);
+    client.pauseDownload(
+      { id: item.id },
+      new grpc.Metadata(),
+      { deadline },
+      async (err: grpc.ServiceError | null, response?: PauseDownloadResponse) => {
+        if (err || !response) {
+          console.error(`[gRPC Client] pauseDownload error (${urlGrpc}):`, err);
+          resolve({
+            success: false,
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+            error: err?.message || "Failed to pause download",
+          });
+          return;
+        }
+
+        if (!response.status) {
+          resolve({
+            success: false,
+            message: response.message,
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+            error: response.message || "Pause rejected by gRPC service",
+          });
+          return;
+        }
+
+        try {
+          const updated = await updateCachedDownloadStatus(filename, item, "PAUSED");
+          resolve({
+            success: true,
+            message: response.message,
+            item: updated,
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+          });
+        } catch (redisErr: any) {
+          resolve({
+            success: true,
+            message: response.message,
+            item: { ...item, status: "PAUSED" },
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+            error: "Paused but Redis update failed: " + redisErr?.message,
+          });
+        }
+      }
+    );
+  });
+}
+
+export async function resumeDownloadViaGrpc(
+  filename: string
+): Promise<ControlDownloadResponse> {
+  const cached = await getCachedDownload(filename);
+  if ("error" in cached) {
+    return {
+      success: false,
+      source: "fallback",
+      grpcTarget: "unknown",
+      error: cached.error,
+    };
+  }
+
+  const { item } = cached;
+  const { client, urlGrpc } = getClientForUrl(item.url);
+
+  return new Promise((resolve) => {
+    const deadline = new Date(Date.now() + 5000);
+    client.resumeDownload(
+      { id: item.id },
+      new grpc.Metadata(),
+      { deadline },
+      async (err: grpc.ServiceError | null, response?: ResumeDownloadResponse) => {
+        if (err || !response) {
+          console.error(`[gRPC Client] resumeDownload error (${urlGrpc}):`, err);
+          resolve({
+            success: false,
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+            error: err?.message || "Failed to resume download",
+          });
+          return;
+        }
+
+        if (!response.status) {
+          resolve({
+            success: false,
+            message: response.message,
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+            error: response.message || "Resume rejected by gRPC service",
+          });
+          return;
+        }
+
+        try {
+          const updated = await updateCachedDownloadStatus(
+            filename,
+            item,
+            "IN_PROGRESS"
+          );
+          resolve({
+            success: true,
+            message: response.message,
+            item: updated,
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+          });
+        } catch (redisErr: any) {
+          resolve({
+            success: true,
+            message: response.message,
+            item: { ...item, status: "IN_PROGRESS" },
+            source: "grpc_server",
+            grpcTarget: urlGrpc,
+            error: "Resumed but Redis update failed: " + redisErr?.message,
+          });
+        }
+      }
+    );
+  });
 }
