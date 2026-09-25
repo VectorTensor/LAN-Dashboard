@@ -43,6 +43,14 @@ export function getGrpcUrls(): string[] {
 
 let index = 0;
 
+export function getClientForUrl(urlGrpc: string) {
+  const client = new DownloadServiceClient(
+    urlGrpc,
+    grpc.credentials.createInsecure()
+  );
+  return { client, urlGrpc };
+}
+
 export function getUserClient() {
   const urls = getGrpcUrls();
   if (urls.length === 0) {
@@ -52,15 +60,28 @@ export function getUserClient() {
   const urlGrpc = urls[index % urls.length];
   index++;
 
-  const client = new DownloadServiceClient(
-    urlGrpc,
-    grpc.credentials.createInsecure()
-  );
+  return getClientForUrl(urlGrpc);
+}
 
-  return {
-    client,
-    urlGrpc,
-  };
+function getStatusViaGrpc(
+  client: DownloadServiceClient,
+  id: string
+): Promise<GetStatusResponse> {
+  return new Promise((resolve, reject) => {
+    const deadline = new Date(Date.now() + 5000);
+    client.getStatus(
+      { id },
+      new grpc.Metadata(),
+      { deadline },
+      (err: grpc.ServiceError | null, response?: GetStatusResponse) => {
+        if (err || !response) {
+          reject(err || new Error("Empty getStatus response"));
+          return;
+        }
+        resolve(response);
+      }
+    );
+  });
 }
 
 function formatBytes(bytes: number): string {
@@ -175,32 +196,76 @@ export async function createDownloadViaGrpc(
 }
 
 export async function fetchDownloadsFromGrpc(filter: string = ""): Promise<GetDownloadsResponse> {
-  let urlGrpc = "localhost:50051";
-  let client: DownloadServiceClient | null = null;
-  let grpcError: string | undefined;
-
-  try {
-    const uc = getUserClient();
-    client = uc.client;
-    urlGrpc = uc.urlGrpc;
-  } catch (e: any) {
-    grpcError = e?.message || "Failed to initialize gRPC client";
-  }
   const names = await getList("downloads:list");
-  const items: DownloadItem[] = names.map((filename) => ({
-    id: crypto.randomUUID(),
-    filename,
-    size: "",
-    status: "",
-    progress: 0,
-    url: "",
-    created_at: new Date().toISOString(),
-  }));
+  const filteredNames = filter
+    ? names.filter((name) => name.toLowerCase().includes(filter.toLowerCase()))
+    : names;
+
+  const errors: string[] = [];
+  const items: DownloadItem[] = [];
+
+  await Promise.all(
+    filteredNames.map(async (filename) => {
+      const raw = await getKey(`download:${filename}`);
+      if (!raw) {
+        errors.push(`Missing Redis key download:${filename}`);
+        return;
+      }
+
+      let cached: DownloadItem;
+      try {
+        cached = JSON.parse(raw) as DownloadItem;
+      } catch {
+        errors.push(`Invalid Redis JSON for download:${filename}`);
+        return;
+      }
+
+      if (!cached.id || !cached.url) {
+        errors.push(`download:${filename} missing id or pod url`);
+        items.push({
+          ...cached,
+          filename: cached.filename || filename,
+        });
+        return;
+      }
+
+      try {
+        const { client, urlGrpc } = getClientForUrl(cached.url);
+        const status = await getStatusViaGrpc(client, cached.id);
+
+        const progressRaw = status.progress ?? 0;
+        const progress =
+          progressRaw <= 1 ? Math.round(progressRaw * 100) : Math.round(progressRaw);
+
+        items.push({
+          ...cached,
+          filename: cached.filename || filename,
+          url: urlGrpc,
+          progress,
+          size: status.totalSize
+            ? `${formatBytes(status.totalDownloaded)} / ${formatBytes(status.totalSize)}`
+            : formatBytes(status.totalDownloaded),
+          status: status.isPaused
+            ? "PAUSED"
+            : status.state || cached.status || "UNKNOWN",
+        });
+      } catch (err: any) {
+        errors.push(
+          `getStatus failed for ${filename} @ ${cached.url}: ${err?.message || err}`
+        );
+        items.push({
+          ...cached,
+          filename: cached.filename || filename,
+          status: cached.status || "UNKNOWN",
+        });
+      }
+    })
+  );
 
   return {
     items,
     source: "grpc_server",
-    grpcTarget: urlGrpc,
-    error: grpcError,
+    grpcTarget: items[0]?.url || getGrpcUrls()[0] || "unknown",
+    error: errors.length > 0 ? errors.join("; ") : undefined,
   };
 }
