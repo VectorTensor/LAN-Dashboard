@@ -24,6 +24,7 @@ interface DownloadItem {
   size: string;
   status: string;
   progress: number;
+  speed: string;
   url: string;
   created_at: string;
 }
@@ -343,6 +344,8 @@ export function DownloadsPageClient() {
 
                       <div className="flex items-center gap-4 text-xs text-zinc-400 mt-2">
                         <span>Size: {item.size}</span>
+                        <span>•</span>
+                        <span>Speed: {item.speed || "—"}</span>
                         <span>•</span>
                         <span className="truncate max-w-xs">{item.url}</span>
                         <span>•</span>

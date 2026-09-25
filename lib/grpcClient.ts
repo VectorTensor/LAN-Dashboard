@@ -16,6 +16,7 @@ export interface DownloadItem {
   size: string;
   status: string;
   progress: number;
+  speed: string;
   url: string;
   created_at: string;
 }
@@ -96,11 +97,16 @@ function getStatusViaGrpc(
 }
 
 function formatBytes(bytes: number): string {
-  if (!bytes || bytes <= 0) return "0 MB";
+  if (!bytes || bytes <= 0) return "0 B";
   const k = 1024;
-  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
+function formatSpeed(bytesPerSecond: number): string {
+  if (!bytesPerSecond || bytesPerSecond <= 0) return "0 B/s";
+  return `${formatBytes(bytesPerSecond)}/s`;
 }
 
 async function getCachedDownload(
@@ -181,6 +187,7 @@ export async function createDownloadViaGrpc(
             size: "Starting...",
             status: "IN_PROGRESS",
             progress: 0,
+            speed: "0 B/s",
             url:urlGrpc,
             created_at: new Date().toISOString(),
           };
@@ -285,6 +292,7 @@ export async function fetchDownloadsFromGrpc(filter: string = ""): Promise<GetDo
           size: status.totalSize
             ? `${formatBytes(status.totalDownloaded)} / ${formatBytes(status.totalSize)}`
             : formatBytes(status.totalDownloaded),
+          speed: status.isPaused ? "0 B/s" : formatSpeed(status.downloadSpeed),
           status: status.isPaused
             ? "PAUSED"
             : status.state || cached.status || "UNKNOWN",
@@ -297,6 +305,7 @@ export async function fetchDownloadsFromGrpc(filter: string = ""): Promise<GetDo
           ...cached,
           filename: cached.filename || filename,
           status: cached.status || "UNKNOWN",
+          speed: cached.speed || "—",
         });
       }
     })
