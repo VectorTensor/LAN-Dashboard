@@ -151,6 +151,13 @@ export function DownloadsPageClient() {
             Downloading
           </span>
         );
+      case "DOWNLOADED":
+        return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <Loader2 size={12} className="animate-spin" />
+            Downloading
+          </span>
+        );
       case "PAUSED":
         return (
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/20">
@@ -174,10 +181,10 @@ export function DownloadsPageClient() {
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
             <Download className="text-purple-400" size={32} />
-            Downloads & gRPC Client
+           Anime Downloads
           </h1>
           <p className="text-zinc-400 text-sm mt-1">
-            Server-side gRPC Service Integration for high-performance file transport and pipeline assets.
+           Download anime torrents for respecting anime.
           </p>
         </div>
 
@@ -197,54 +204,54 @@ export function DownloadsPageClient() {
             className="bg-purple-600 hover:bg-purple-500 text-white font-medium"
           >
             <Plus size={16} className="mr-2" />
-            New gRPC Download
+            New Anime Download
           </Button>
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-white/10 bg-zinc-900/60 p-5 backdrop-blur-md"
-      >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              <Server size={22} />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-white">
-                  Server-side gRPC Channel
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-zinc-300 font-mono">
-                  proto3
-                </span>
-              </div>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Target: <code className="text-purple-300 font-mono">{grpcMeta.grpcTarget}</code>
-              </p>
-            </div>
-          </div>
+      {/*<motion.div*/}
+      {/*  initial={{ opacity: 0, y: 15 }}*/}
+      {/*  animate={{ opacity: 1, y: 0 }}*/}
+      {/*  className="rounded-xl border border-white/10 bg-zinc-900/60 p-5 backdrop-blur-md"*/}
+      {/*>*/}
+      {/*  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">*/}
+      {/*    <div className="flex items-center gap-3">*/}
+      {/*      <div className="p-3 rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">*/}
+      {/*        <Server size={22} />*/}
+      {/*      </div>*/}
+      {/*      <div>*/}
+      {/*        <div className="flex items-center gap-2">*/}
+      {/*          <span className="text-sm font-semibold text-white">*/}
+      {/*            Server-side gRPC Channel*/}
+      {/*          </span>*/}
+      {/*          <span className="text-xs px-2 py-0.5 rounded bg-white/10 text-zinc-300 font-mono">*/}
+      {/*            proto3*/}
+      {/*          </span>*/}
+      {/*        </div>*/}
+      {/*        <p className="text-xs text-zinc-400 mt-0.5">*/}
+      {/*          Target: <code className="text-purple-300 font-mono">{grpcMeta.grpcTarget}</code>*/}
+      {/*        </p>*/}
+      {/*      </div>*/}
+      {/*    </div>*/}
 
-          <div className="flex items-center gap-2">
-            {grpcMeta.source === "grpc_server" ? (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">
-                <Zap size={14} />
-                Live gRPC Server Connected
-              </div>
-            ) : (
-              <div
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium"
-                title={grpcMeta.error}
-              >
-                <AlertCircle size={14} />
-                gRPC Ready (Server Fallback Mode)
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.div>
+      {/*    <div className="flex items-center gap-2">*/}
+      {/*      {grpcMeta.source === "grpc_server" ? (*/}
+      {/*        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-medium">*/}
+      {/*          <Zap size={14} />*/}
+      {/*          Live gRPC Server Connected*/}
+      {/*        </div>*/}
+      {/*      ) : (*/}
+      {/*        <div*/}
+      {/*          className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-medium"*/}
+      {/*          title={grpcMeta.error}*/}
+      {/*        >*/}
+      {/*          <AlertCircle size={14} />*/}
+      {/*          gRPC Ready (Server Fallback Mode)*/}
+      {/*        </div>*/}
+      {/*      )}*/}
+      {/*    </div>*/}
+      {/*  </div>*/}
+      {/*</motion.div>*/}
 
       {showAddForm && (
         <motion.div
@@ -255,7 +262,7 @@ export function DownloadsPageClient() {
         >
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <Plus size={18} className="text-purple-400" />
-            Dispatch Request to gRPC Download Service
+            Dispatch Anime Download Request to Pegasus Service
           </h3>
           <form onSubmit={handleCreateDownload} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -317,11 +324,11 @@ export function DownloadsPageClient() {
         {loading ? (
           <div className="flex items-center justify-center p-12 text-zinc-400">
             <Loader2 className="animate-spin mr-2" size={24} />
-            Loading gRPC downloads...
+            Loading Anime downloads...
           </div>
         ) : downloads.length === 0 ? (
           <Card className="glass border-white/10 text-center p-8 text-zinc-400">
-            No downloads available. Click New gRPC Download to start one.
+            No downloads available. Click New Anime Download to start one.
           </Card>
         ) : (
           downloads.map((item) => (

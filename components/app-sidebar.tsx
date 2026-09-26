@@ -43,11 +43,6 @@ const items = [
         url: "/downloads",
         icon: Download,
     },
-    {
-        title: "Redis Cache",
-        url: "/redis",
-        icon: Database,
-    },
 ];
 
 export function AppSidebar() {
