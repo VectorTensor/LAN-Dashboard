@@ -2,19 +2,11 @@
 
 import { motion } from "framer-motion";
 import {
-    Activity,
-    Cpu,
-    HardDrive,
-    Network,
-    ShieldCheck,
-    Users,
-    Settings,
-    Bell,
     Lock,
     Workflow,
     ExternalLink,
     Download,
-    Database,
+    Music,
 } from "lucide-react";
 import {
     Card,
@@ -32,6 +24,14 @@ const services = [
         icon: Download,
         href: "/downloads",
         color: "text-purple-400",
+        isExternal: false,
+    },
+    {
+        title: "Music",
+        description: "Produce music messages to Kafka and watch the live topic log.",
+        icon: Music,
+        href: "/music",
+        color: "text-emerald-400",
         isExternal: false,
     },
     {

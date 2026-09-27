@@ -3,14 +3,11 @@
 import * as React from "react";
 import {
     LayoutDashboard,
-    Lock,
-    Workflow,
-    FileText,
     Settings,
     User as UserIcon,
     ChevronUp,
     Download,
-    Database,
+    Music,
 } from "lucide-react";
 
 import {
@@ -42,6 +39,11 @@ const items = [
         title: "Downloads",
         url: "/downloads",
         icon: Download,
+    },
+    {
+        title: "Music",
+        url: "/music",
+        icon: Music,
     },
 ];
 
