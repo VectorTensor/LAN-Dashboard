@@ -35,16 +35,6 @@ const items = [
         url: "/dashboard",
         icon: LayoutDashboard,
     },
-    {
-        title: "Downloads",
-        url: "/downloads",
-        icon: Download,
-    },
-    {
-        title: "Music",
-        url: "/music",
-        icon: Music,
-    },
 ];
 
 export function AppSidebar() {
@@ -52,12 +42,8 @@ export function AppSidebar() {
         <Sidebar collapsible="icon" className="border-r border-white/5 bg-zinc-950">
             <SidebarHeader className="p-4 border-b border-white/5">
                 <div className="flex items-center gap-2">
-                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-white text-black font-bold">
-                        L
-                    </div>
                     <div className="flex flex-col gap-0.5 leading-none group-data-[collapsible=icon]:hidden">
-                        <span className="font-semibold text-white">LAN Dashboard</span>
-                        <span className="text-xs text-zinc-400">v1.0.0</span>
+                        <span className="font-semibold text-white">Memehub Dashboard</span>
                     </div>
                 </div>
             </SidebarHeader>
@@ -80,32 +66,6 @@ export function AppSidebar() {
                     </SidebarGroupContent>
                 </SidebarGroup>
             </SidebarContent>
-            <SidebarFooter className="p-2">
-                <SidebarMenu>
-                    <SidebarMenuItem>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <SidebarMenuButton className="w-full text-zinc-400 hover:text-white">
-                                    <UserIcon className="size-5" />
-                                    <span className="group-data-[collapsible=icon]:hidden">
-                                        User
-                                    </span>
-                                    <ChevronUp className="ml-auto size-4 group-data-[collapsible=icon]:hidden" />
-                                </SidebarMenuButton>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                side="top"
-                                className="w-[--radix-dropdown-menu-trigger-width] min-w-56 bg-zinc-900 border-white/5 text-zinc-400"
-                            >
-                                <DropdownMenuItem className="focus:bg-white/5 focus:text-white transition-colors cursor-pointer">
-                                    <Settings className="mr-2 h-4 w-4" />
-                                    <span>Settings</span>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </SidebarMenuItem>
-                </SidebarMenu>
-            </SidebarFooter>
         </Sidebar>
     );
 }
