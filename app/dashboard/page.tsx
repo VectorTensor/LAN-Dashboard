@@ -27,6 +27,14 @@ const services = [
         isExternal: false,
     },
     {
+        title: "General Downloads",
+        description: "Start general downloads for YouTube or website sources.",
+        icon: Download,
+        href: "/general-downloads",
+        color: "text-sky-400",
+        isExternal: false,
+    },
+    {
         title: "Music",
         description: "Produce music messages to Kafka and watch the live topic log.",
         icon: Music,
