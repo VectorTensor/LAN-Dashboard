@@ -1,8 +1,12 @@
 name: Build and Push Release Image
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -12,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -28,10 +34,19 @@ jobs:
 
       - name: Build and Push Image
         run: |
-          TAG=${{ github.event.release.tag_name }}
+          TAG=${{ github.ref_name }}
           APP_NAME=lan-dashboard
           IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/$APP_NAME:$TAG
 
           docker build -t $APP_NAME:$TAG .
           docker tag $APP_NAME:$TAG $IMAGE_URI
           docker push $IMAGE_URI
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --generate-notes \
+            --title "${{ github.ref_name }}" \
+            --verify-tag
