@@ -1,11 +1,9 @@
-import { Kafka, type Consumer } from "kafkajs";
+import { Kafka } from "kafkajs";
 import { getSecret } from "@/lib/loadSecrets";
 
 const broker = getSecret("CFG_KAFKA_BROKER") || "localhost:9092";
 export const produceTopic =
   getSecret("CFG_KAFKA_PRODUCE_TOPIC") || "anime-op";
-export const consumeTopic =
-  getSecret("CFG_KAFKA_CONSUME_TOPIC") || produceTopic;
 
 export const kafka = new Kafka({
   clientId: "my-typescript-app",
@@ -55,11 +53,5 @@ export async function produceMusic(payload: {
         }),
       },
     ],
-  });
-}
-
-export function createLogConsumer(groupId?: string): Consumer {
-  return kafka.consumer({
-    groupId: groupId || `music-log-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   });
 }
