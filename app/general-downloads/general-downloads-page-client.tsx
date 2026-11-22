@@ -19,7 +19,7 @@ export function GeneralDownloadsPageClient() {
   const [album, setAlbum] = useState("");
   const [artist, setArtist] = useState("");
 
-  const handleBeginDownload = (e: React.FormEvent) => {
+  const handleBeginDownload = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const payload = {
@@ -27,7 +27,7 @@ export function GeneralDownloadsPageClient() {
       downloadType,
       name: name.trim(),
       mediaType,
-      ...(mediaType === "Music"
+      additional_info: (mediaType === "Music"
         ? {
             thumbnail_url: thumbnailUrl.trim(),
             album: album.trim(),
@@ -35,8 +35,14 @@ export function GeneralDownloadsPageClient() {
           }
         : {}),
     };
+    const res = await fetch("/api/general-downloads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    console.log("Response data:", data);
 
-    console.log(payload);
   };
 
   const fieldClass =
