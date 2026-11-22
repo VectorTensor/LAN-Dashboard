@@ -42,14 +42,7 @@ jobs:
           docker tag $APP_NAME:$TAG $IMAGE_URI
           docker push $IMAGE_URI
 
-      - name: Create GitHub Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${{ github.ref_name }}" \
-            --generate-notes \
-            --title "${{ github.ref_name }}" \
-            --verify-tag
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
