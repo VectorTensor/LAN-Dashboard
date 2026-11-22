@@ -64,7 +64,6 @@ export type generalDownloadPayload = {
   downloadType: string;
   name: string;
   mediaType: string;
-  thumbnail_url: string;
   additional_info: object;
 }
 
