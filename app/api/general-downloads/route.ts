@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
             file_url: body.file_url,
             downloadType: body.downloadType,
             name: body.name,
-            mediaType: body.name,
+            mediaType: body.mediaType,
             additional_info: body.additional_info,
 
         }
